@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
 
-// 定义数据结构
 interface Todo {
   id: number;
   title: string;
@@ -11,215 +10,145 @@ interface Todo {
   dueDate?: string;
 }
 
-// 定义筛选状态类型
 type FilterType = 'all' | 'active' | 'completed';
 
 function App() {
-  // 使用 v2 版本的存储 Key，避免旧数据冲突
   const [todos, setTodos] = useState<Todo[]>(() => {
     const saved = localStorage.getItem('my-todo-app-data-v2');
     if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return []; 
-      }
+      try { return JSON.parse(saved); } catch (e) { return []; }
     }
-
-    return [
-      { 
-        id: 1, 
-        title: '数据结构已升级', 
-        description: '现在支持新字段了，但在界面上还看不到', 
-        completed: false,
-        category: 'study',
-        priority: 'high',
-        dueDate: '2025-11-25'
-      },
-    ];
+    return [];
   });
 
-  // 输入框状态
+  // 表单状态
   const [inputTitle, setInputTitle] = useState('');
-  const [inputDesc, setInputDesc] = useState(''); 
+  const [inputDesc, setInputDesc] = useState('');
+  // 表单控制状态
+  const [category, setCategory] = useState<Todo['category']>('study');
+  const [priority, setPriority] = useState<Todo['priority']>('medium');
+  const [dueDate, setDueDate] = useState('');
 
-  // 搜索和筛选状态
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState<FilterType>('all');
 
-  // 自动存档功能
   useEffect(() => {
-    localStorage.setItem('my-todo-app-data', JSON.stringify(todos));
+    localStorage.setItem('my-todo-app-data-v2', JSON.stringify(todos));
   }, [todos]);
 
-/* -------------------------业务逻辑函数（增删改）----------------------- */
   const handleAddTodo = () => {
     if (inputTitle.trim() === '') return;
-
+    
     const newTodo: Todo = {
       id: Date.now(),
       title: inputTitle,
       description: inputDesc,
       completed: false,
-      // 【临时】先给默认值，下一步再做输入框
-      category: 'life',
-      priority: 'medium',
-      dueDate: ''
+      category,
+      priority,
+      dueDate
     };
-
+    
     setTodos([newTodo, ...todos]);
+    // 重置表单
     setInputTitle('');
     setInputDesc('');
+    setPriority('medium');
+    setDueDate('');
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleAddTodo();
-  };
+  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter') handleAddTodo(); };
+  const toggleTodo = (id: number) => { setTodos(todos.map(todo => todo.id === id ? { ...todo, completed: !todo.completed } : todo)); };
+  const deleteTodo = (id: number) => { setTodos(todos.filter(todo => todo.id !== id)); };
 
-  const toggleTodo = (id: number) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
-  };
-
-  const deleteTodo = (id: number) => {
-    setTodos(todos.filter(todo => todo.id !== id));
-  };
-
-  // 计算衍生数据 
   const filteredTodos = todos.filter(todo => {
     if (filter === 'active' && todo.completed) return false;
     if (filter === 'completed' && !todo.completed) return false;
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      const matchTitle = todo.title.toLowerCase().includes(term);
-      const matchDesc = todo.description?.toLowerCase().includes(term);
-      if (!matchTitle && !matchDesc) return false;
+      return todo.title.toLowerCase().includes(term) || todo.description?.toLowerCase().includes(term);
     }
     return true;
   });
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-start justify-center py-10 px-4">
-      
-      {/* 核心卡片容器 */}
-      <div className="w-full max-w-md bg-white shadow-xl rounded-xl overflow-hidden">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 font-sans text-gray-900">
+      <div className="max-w-2xl mx-auto space-y-6">
         
-        {/* 标题区域 */}
-        <div className="bg-blue-600 p-6">
-          <h1 className="text-2xl font-bold text-white tracking-wider">
-            我的待办事项
+        {/* Header */}
+        <header className="text-center space-y-2">
+          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+            Ultimate Todo List
           </h1>
-          <p className="text-blue-100 text-sm mt-1">
-            保持专注，高效每一天
-          </p>
-        </div>
+        </header>
 
-        {/* 控制面板 */}
-        <div className="p-4 border-b border-gray-100 bg-gray-50 space-y-3">
+        {/* 输入卡片 */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4 border border-gray-100">
+          <input 
+            type="text" 
+            value={inputTitle}
+            onChange={e => setInputTitle(e.target.value)}
+            placeholder="准备做什么？(必填)" 
+            className="w-full text-lg font-medium placeholder:text-gray-400 border-0 border-b-2 border-gray-100 focus:border-blue-500 focus:ring-0 px-0 py-2 transition-colors"
+          />
+          <textarea 
+            value={inputDesc}
+            onChange={e => setInputDesc(e.target.value)}
+            placeholder="添加描述..." 
+            rows={2}
+            className="w-full text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border-none focus:ring-2 focus:ring-blue-100 resize-none"
+          />
+          
+          {/* 控制栏：日期、分类、优先级 */}
+          <div className="flex flex-wrap gap-3 items-center justify-between">
+            <div className="flex gap-2 flex-wrap">
+              <select 
+                value={category}
+                onChange={e => setCategory(e.target.value as any)}
+                className="text-sm bg-gray-50 border-none rounded-lg py-2 pl-3 pr-8 focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-gray-100 transition"
+              >
+                <option value="study">📚 学习</option>
+                <option value="work">💼 工作</option>
+                <option value="life">🏖️ 生活</option>
+                <option value="exercise">🏃 运动</option>
+              </select>
 
-        {/* 输入区域 */}
-          <div className="space-y-2">
-            <input 
-              type="text" 
-              value={inputTitle}
-              onChange={(e) => setInputTitle(e.target.value)}
-              onKeyDown={handleKeyDown} 
-              placeholder="任务标题 (必填)..." 
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
-            />
-            <div className="flex space-x-2">
+              <select 
+                value={priority}
+                onChange={e => setPriority(e.target.value as any)}
+                className="text-sm bg-gray-50 border-none rounded-lg py-2 pl-3 pr-8 focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-gray-100 transition"
+              >
+                <option value="low">🟢 低优先级</option>
+                <option value="medium">🟡 中优先级</option>
+                <option value="high">🔴 高优先级</option>
+              </select>
+
               <input 
-                type="text" 
-                value={inputDesc}
-                onChange={(e) => setInputDesc(e.target.value)}
-                onKeyDown={handleKeyDown} 
-                placeholder="任务描述 (可选)..." 
-                className="flex-1 p-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm bg-gray-50 focus:bg-white"
+                type="date" 
+                value={dueDate}
+                onChange={e => setDueDate(e.target.value)}
+                className="text-sm bg-gray-50 border-none rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-100 cursor-pointer hover:bg-gray-100 transition text-gray-600"
               />
-              <button onClick={handleAddTodo} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition shadow-sm whitespace-nowrap">
-                添加
-              </button>
-            </div>
-          </div>
-
-          {/* 搜索和筛选工具栏 */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-            {/* 搜索框 */}
-            <div className="relative flex-1">
-              <input 
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="搜索..."
-                className="w-full p-2 pl-8 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
-              />
-              <span className="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
             </div>
 
-            {/* 筛选按钮组 */}
-            <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg self-start sm:self-auto">
-              {(['all', 'active', 'completed'] as FilterType[]).map((type) => (
-                <button
-                  key={type}
-                  onClick={() => setFilter(type)}
-                  className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                    filter === type 
-                      ? 'bg-white text-blue-600 shadow-sm' 
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {type === 'all' ? '全部' : type === 'active' ? '待办' : '已完成'}
-                </button>
-              ))}
-            </div>
+            <button 
+              onClick={handleAddTodo}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-semibold shadow-md shadow-indigo-200 transition-all active:scale-95"
+            >
+              创建任务
+            </button>
           </div>
         </div>
 
-        {/* 列表区域 (渲染 filteredTodos) */}
-        <ul className="divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
-          {filteredTodos.length === 0 ? (
-            <li className="p-10 text-center text-gray-500 flex flex-col items-center">
-              <span className="text-4xl mb-2">🤔</span>
-              <p>没有找到相关任务</p>
-            </li>
-          ) : (
-            filteredTodos.map(todo => (
-              <li key={todo.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition group">
-                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => toggleTodo(todo.id)}>
-                  <input 
-                    type="checkbox" 
-                    checked={todo.completed}
-                    readOnly
-                    className="w-5 h-5 text-blue-600 rounded border-gray-300 cursor-pointer"
-                  />
-                  <div className="flex flex-col">
-                    <span className={`font-medium text-gray-800 transition-all ${todo.completed ? 'line-through text-gray-400' : ''}`}>
-                      {todo.title}
-                    </span>
-                    {/* 显示描述 */}
-                    {todo.description && (
-                      <span className={`text-sm text-gray-500 mt-0.5 ${todo.completed ? 'line-through text-gray-300' : ''}`}>
-                        {todo.description}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <button onClick={() => deleteTodo(todo.id)} className="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">
-                  删除
-                </button>
-              </li>
-            ))
-          )}
-        </ul>
-
-        {/* 底部统计栏 */}
-        <div className="p-4 bg-gray-50 text-sm text-gray-500 text-center border-t border-gray-100">
-          共 {todos.length} 个任务 · 显示 {filteredTodos.length} 个
+        {/* 简单的列表展示（还没美化，先凑合看） */}
+        <div className="space-y-2">
+            {filteredTodos.map(todo => (
+                <div key={todo.id} className="bg-white p-4 rounded shadow">{todo.title} (暂时还没美化列表)</div>
+            ))}
         </div>
+        
       </div>
     </div>
   )
 }
-
 export default App
