@@ -15,17 +15,29 @@ function App() {
   ]);
   const [inputValue, setInputValue] = useState('');
 
-  // 先占个坑，后面再实现
   const handleAddTodo = () => {
-    console.log('准备添加任务:', inputValue);
+    if (inputValue.trim() === '') return;
+    const newTodo: Todo = {
+      id: Date.now(),
+      text: inputValue,
+      completed: false,
+    };
+    setTodos([...todos, newTodo]);
+    setInputValue('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleAddTodo();
   };
 
   const toggleTodo = (id: number) => {
-    console.log('准备切换状态:', id);
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
   };
 
   const deleteTodo = (id: number) => {
-    console.log('准备删除任务:', id);
+    setTodos(todos.filter(todo => todo.id !== id));
   };
 
   return (
@@ -48,57 +60,49 @@ function App() {
         <div className="p-4 border-b border-gray-100 bg-gray-50">
           <div className="flex space-x-2">
             <input 
-              type="text" 
+              type="text"
+              value={inputValue} 
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="添加一个新的任务..." 
               className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition shadow-sm"
             />
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-sm active:scale-95">
+            <button onClick={handleAddTodo} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-sm">
               添加
             </button>
           </div>
         </div>
 
-        {/* 3. 列表区域 (先写死几个假数据看看效果) */}
+        {/* 3. 列表区域*/}
         <ul className="divide-y divide-gray-100">
-          
-          {/* 示例任务 1：未完成 */}
-          <li className="flex items-center justify-between p-4 hover:bg-gray-50 transition group">
-            <div className="flex items-center space-x-3">
-              <input 
-                type="checkbox" 
-                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-              />
-              <span className="text-gray-700">
-                完成前端笔试的基础架构
-              </span>
-            </div>
-            <button className="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">
-              删除
-            </button>
-          </li>
-
-          {/* 示例任务 2：已完成 */}
-          <li className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition group">
-            <div className="flex items-center space-x-3">
-              <input 
-                type="checkbox" 
-                defaultChecked
-                className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
-              />
-              <span className="text-gray-400 line-through">
-                配置 Vite 和 Tailwind 环境
-              </span>
-            </div>
-            <button className="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">
-              删除
-            </button>
-          </li>
-
+          {todos.length === 0 ? (
+            <li className="p-10 text-center text-gray-500">暂无任务，来添加一个吧！</li>
+          ) : (
+            todos.map(todo => (
+              <li key={todo.id} className="flex items-center justify-between p-4 hover:bg-gray-50 transition group">
+                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => toggleTodo(todo.id)}>
+                  <input 
+                    type="checkbox" 
+                    checked={todo.completed}
+                    readOnly
+                    className="w-5 h-5 text-blue-600 rounded border-gray-300 cursor-pointer"
+                  />
+                  <span className={`text-gray-700 transition-all ${todo.completed ? 'line-through text-gray-400' : ''}`}>
+                    {todo.text}
+                  </span>
+                </div>
+                <button onClick={() => deleteTodo(todo.id)} className="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">
+                  {/* SVG暂时删除以为简洁 */}
+                  删除
+                </button>
+              </li>
+            ))
+          )}
         </ul>
 
         {/* 4. 底部统计栏 */}
         <div className="p-4 bg-gray-50 text-sm text-gray-500 text-center border-t border-gray-100">
-          还有 1 个任务未完成
+          还有 {todos.filter(t => !t.completed).length} 个任务未完成
         </div>
 
       </div>
