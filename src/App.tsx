@@ -1,9 +1,33 @@
-import React from 'react'
+import React, { useState } from 'react'
 
-// 这里是我们后面要用的 Icon，现在先用文字代替，或者直接用 emoji
-// React 组件本质上就是函数
+// 定义数据结构
+interface Todo {
+  id: number;
+  text: string;
+  completed: boolean;
+}
 
 function App() {
+  // 这里先把数据定义好
+  const [todos, setTodos] = useState<Todo[]>([
+    { id: 1, text: '完成前端笔试的基础架构', completed: false },
+    { id: 2, text: '配置 Vite 和 Tailwind 环境', completed: true },
+  ]);
+  const [inputValue, setInputValue] = useState('');
+
+  // 先占个坑，后面再实现
+  const handleAddTodo = () => {
+    console.log('准备添加任务:', inputValue);
+  };
+
+  const toggleTodo = (id: number) => {
+    console.log('准备切换状态:', id);
+  };
+
+  const deleteTodo = (id: number) => {
+    console.log('准备删除任务:', id);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex items-start justify-center py-10 px-4">
       
