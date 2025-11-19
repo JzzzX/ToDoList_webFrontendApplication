@@ -6,15 +6,18 @@ interface Todo {
   title: string;
   description?: string;
   completed: boolean;
+  category: 'work' | 'study' | 'life';
+  priority: 'high' | 'medium' | 'low';
+  dueDate?: string;
 }
 
 // 定义筛选状态类型
 type FilterType = 'all' | 'active' | 'completed';
 
 function App() {
-  // 状态：从 localStorage 初始化
+  // 使用 v2 版本的存储 Key，避免旧数据冲突
   const [todos, setTodos] = useState<Todo[]>(() => {
-    const saved = localStorage.getItem('my-todo-app-data');
+    const saved = localStorage.getItem('my-todo-app-data-v2');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -22,10 +25,17 @@ function App() {
         return []; 
       }
     }
-    // 如果本地没数据，默认给两条欢迎数据
+
     return [
-      { id: 1, text: '完成前端笔试的基础架构', completed: false },
-      { id: 2, text: '刷新页面，数据依然还在！', completed: true },
+      { 
+        id: 1, 
+        title: '数据结构已升级', 
+        description: '现在支持新字段了，但在界面上还看不到', 
+        completed: false,
+        category: 'study',
+        priority: 'high',
+        dueDate: '2025-11-25'
+      },
     ];
   });
 
@@ -45,11 +55,18 @@ function App() {
 /* -------------------------业务逻辑函数（增删改）----------------------- */
   const handleAddTodo = () => {
     if (inputTitle.trim() === '') return;
+
     const newTodo: Todo = {
       id: Date.now(),
       title: inputTitle,
+      description: inputDesc,
       completed: false,
+      // 【临时】先给默认值，下一步再做输入框
+      category: 'life',
+      priority: 'medium',
+      dueDate: ''
     };
+
     setTodos([newTodo, ...todos]);
     setInputTitle('');
     setInputDesc('');
