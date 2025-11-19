@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react'
 // 定义数据结构
 interface Todo {
   id: number;
-  text: string;
+  title: string;
+  description?: string;
   completed: boolean;
 }
 
@@ -11,6 +12,7 @@ interface Todo {
 type FilterType = 'all' | 'active' | 'completed';
 
 function App() {
+  // 状态：从 localStorage 初始化
   const [todos, setTodos] = useState<Todo[]>(() => {
     const saved = localStorage.getItem('my-todo-app-data');
     if (saved) {
@@ -27,10 +29,13 @@ function App() {
     ];
   });
 
-  const [inputValue, setInputValue] = useState('');
+  // 输入框状态
+  const [inputTitle, setInputTitle] = useState('');
+  const [inputDesc, setInputDesc] = useState(''); 
 
-  const [searchTerm, setSearchTerm] = useState(''); // 搜索关键词状态
-  const [filter, setFilter] = useState<FilterType>('all'); //筛选状态
+  // 搜索和筛选状态
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filter, setFilter] = useState<FilterType>('all');
 
   // 自动存档功能
   useEffect(() => {
@@ -39,14 +44,15 @@ function App() {
 
 /* -------------------------业务逻辑函数（增删改）----------------------- */
   const handleAddTodo = () => {
-    if (inputValue.trim() === '') return;
+    if (inputTitle.trim() === '') return;
     const newTodo: Todo = {
       id: Date.now(),
-      text: inputValue,
+      title: inputTitle,
       completed: false,
     };
-    setTodos([...todos, newTodo]);
-    setInputValue('');
+    setTodos([newTodo, ...todos]);
+    setInputTitle('');
+    setInputDesc('');
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -63,12 +69,16 @@ function App() {
     setTodos(todos.filter(todo => todo.id !== id));
   };
 
-  // 4. 计算衍生数据 
+  // 计算衍生数据 
   const filteredTodos = todos.filter(todo => {
     if (filter === 'active' && todo.completed) return false;
     if (filter === 'completed' && !todo.completed) return false;
-    if (searchTerm && !todo.text.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const matchTitle = todo.title.toLowerCase().includes(term);
+      const matchDesc = todo.description?.toLowerCase().includes(term);
+      if (!matchTitle && !matchDesc) return false;
+    }
     return true;
   });
 
@@ -91,19 +101,29 @@ function App() {
         {/* 控制面板 */}
         <div className="p-4 border-b border-gray-100 bg-gray-50 space-y-3">
 
-          {/* 添加任务输入框 */}
-          <div className="flex space-x-2">
+        {/* 输入区域 */}
+          <div className="space-y-2">
             <input 
               type="text" 
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              value={inputTitle}
+              onChange={(e) => setInputTitle(e.target.value)}
               onKeyDown={handleKeyDown} 
-              placeholder="添加一个新的任务..." 
-              className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
+              placeholder="任务标题 (必填)..." 
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
             />
-            <button onClick={handleAddTodo} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition shadow-sm">
-              添加
-            </button>
+            <div className="flex space-x-2">
+              <input 
+                type="text" 
+                value={inputDesc}
+                onChange={(e) => setInputDesc(e.target.value)}
+                onKeyDown={handleKeyDown} 
+                placeholder="任务描述 (可选)..." 
+                className="flex-1 p-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm bg-gray-50 focus:bg-white"
+              />
+              <button onClick={handleAddTodo} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition shadow-sm whitespace-nowrap">
+                添加
+              </button>
+            </div>
           </div>
 
           {/* 搜索和筛选工具栏 */}
@@ -114,11 +134,12 @@ function App() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="🔍 搜索任务..."
+                placeholder="搜索..."
                 className="w-full p-2 pl-8 text-sm border border-gray-300 rounded-md focus:outline-none focus:border-blue-500 bg-white"
               />
               <span className="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
             </div>
+
             {/* 筛选按钮组 */}
             <div className="flex space-x-1 bg-gray-200 p-1 rounded-lg self-start sm:self-auto">
               {(['all', 'active', 'completed'] as FilterType[]).map((type) => (
@@ -138,7 +159,7 @@ function App() {
           </div>
         </div>
 
-        {/* 3. 列表区域 (渲染 filteredTodos) */}
+        {/* 列表区域 (渲染 filteredTodos) */}
         <ul className="divide-y divide-gray-100 max-h-[60vh] overflow-y-auto">
           {filteredTodos.length === 0 ? (
             <li className="p-10 text-center text-gray-500 flex flex-col items-center">
@@ -155,9 +176,17 @@ function App() {
                     readOnly
                     className="w-5 h-5 text-blue-600 rounded border-gray-300 cursor-pointer"
                   />
-                  <span className={`text-gray-700 transition-all ${todo.completed ? 'line-through text-gray-400' : ''}`}>
-                    {todo.text}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className={`font-medium text-gray-800 transition-all ${todo.completed ? 'line-through text-gray-400' : ''}`}>
+                      {todo.title}
+                    </span>
+                    {/* 显示描述 */}
+                    {todo.description && (
+                      <span className={`text-sm text-gray-500 mt-0.5 ${todo.completed ? 'line-through text-gray-300' : ''}`}>
+                        {todo.description}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button onClick={() => deleteTodo(todo.id)} className="text-gray-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100 p-2">
                   删除
