@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useAITaskSplitter } from './hooks/useAITaskSplitter'
 
 interface Todo {
   id: number;
@@ -20,6 +21,13 @@ function App() {
     if (saved) { try { return JSON.parse(saved); } catch (e) { return []; } }
     return [];
   });
+
+  // === AI 相关状态 ===
+  const { splitTaskWithAI, isLoading: isAILoading } = useAITaskSplitter();
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiTargetTaskId, setAiTargetTaskId] = useState<number | null>(null);
+  const [aiTargetTaskTitle, setAiTargetTaskTitle] = useState('');
+  const [apiKey, setApiKey] = useState('');
 
   // 表单状态
   const [inputTitle, setInputTitle] = useState('');
@@ -85,6 +93,39 @@ function App() {
     }
   };
 
+
+  // === AI 操作逻辑 ===
+  const handleOpenAIModal = (task: Todo) => {
+    setAiTargetTaskId(task.id);
+    setAiTargetTaskTitle(task.title);
+    setShowAIModal(true); // 打开弹窗
+  };
+
+  const handleAISplitExecution = async (mode: 'mock' | 'real') => {
+    if (!aiTargetTaskId) return;
+    
+    // 调用我们封装好的 Hook
+    const subtasks = await splitTaskWithAI(aiTargetTaskTitle, apiKey, mode);
+    
+    if (subtasks && subtasks.length > 0) {
+      // 将生成的子任务转换成 Todo 格式
+      const newTodos: Todo[] = subtasks.map((st, index) => ({
+        id: Date.now() + index,
+        title: st.title,
+        description: st.description,
+        completed: false,
+        category: 'work',     // 默认分类
+        priority: 'medium',   // 默认优先级
+        dueDate: new Date().toISOString().split('T')[0] // 默认今天
+      }));
+
+      // 插入到列表最前面
+      setTodos(prev => [...newTodos, ...prev]);
+      setShowAIModal(false); // 关闭弹窗
+      alert(`✨ 成功拆解出 ${subtasks.length} 个子任务！`);
+    }
+  };
+
   // 排序与过滤引擎
   const priorityWeight = { high: 3, medium: 2, low: 1 };
 
@@ -122,6 +163,42 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 font-sans text-gray-900">
+
+      {/* === AI 弹窗 (Modal) === */}
+      {showAIModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">✨ AI 任务拆解</h3>
+              <button onClick={() => setShowAIModal(false)} className="text-gray-400 hover:text-gray-600">✕</button>
+            </div>
+            <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
+              正在为任务 <strong>“{aiTargetTaskTitle}”</strong> 生成子步骤...
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">API Key (填入你的 Key)</label>
+                <input 
+                  type="password" 
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="AIzaSy..." 
+                  className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => handleAISplitExecution('mock')} disabled={isAILoading} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-xl font-medium transition disabled:opacity-50">
+                  {isAILoading ? '思考中...' : '🔮 模拟演示'}
+                </button>
+                <button onClick={() => handleAISplitExecution('real')} disabled={isAILoading} className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 text-white py-2.5 rounded-xl font-medium transition disabled:opacity-50 shadow-lg shadow-blue-200">
+                  {isAILoading ? '生成中...' : '🚀 开始生成'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto space-y-6">
         <header className="text-center space-y-2">
           <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
@@ -187,10 +264,7 @@ function App() {
         <div className="space-y-3">
           {processedTodos.map(todo => (
             <div key={todo.id} className={`group bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-start gap-4 ${todo.completed ? 'opacity-50 grayscale-[50%]' : ''}`}>
-              <div className="pt-1">
-                <input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo.id)} 
-                  className="w-6 h-6 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500 cursor-pointer transition-all" />
-              </div>
+              <div className="pt-1"><input type="checkbox" checked={todo.completed} onChange={() => toggleTodo(todo.id)} className="w-6 h-6 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500 cursor-pointer transition-all" /></div>
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className={`font-bold text-gray-800 truncate ${todo.completed ? 'line-through decoration-2 decoration-gray-300' : ''}`}>{todo.title}</span>
@@ -198,12 +272,20 @@ function App() {
                   <span className="text-sm">{getCategoryEmoji(todo.category)}</span>
                 </div>
                 {todo.description && <p className="text-sm text-gray-500 line-clamp-2">{todo.description}</p>}
-                {todo.dueDate && (
-                  <div className={`flex items-center gap-1 text-xs font-medium mt-1 ${todo.dueDate < new Date().toISOString().split('T')[0] && !todo.completed ? 'text-red-500' : 'text-gray-400'}`}>
-                    🗓 {todo.dueDate} {todo.dueDate < new Date().toISOString().split('T')[0] && !todo.completed ? '(已过期)' : ''}
-                  </div>
-                )}
+                {todo.dueDate && (<div className={`flex items-center gap-1 text-xs font-medium mt-1 ${todo.dueDate < new Date().toISOString().split('T')[0] && !todo.completed ? 'text-red-500' : 'text-gray-400'}`}>🗓 {todo.dueDate} {todo.dueDate < new Date().toISOString().split('T')[0] && !todo.completed ? '(已过期)' : ''}</div>)}
               </div>
+              
+              {/* === AI魔法棒按钮 === */}
+              {!todo.completed && (
+                <button 
+                  onClick={() => handleOpenAIModal(todo)}
+                  className="text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                  title="AI 智能拆解"
+                >
+                  ✨
+                </button>
+              )}
+              
               <button onClick={() => deleteTodo(todo.id)} className="text-gray-300 hover:text-red-500 p-2 transition-colors opacity-0 group-hover:opacity-100">🗑</button>
             </div>
           ))}
