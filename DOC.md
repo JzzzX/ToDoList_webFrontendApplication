@@ -16,7 +16,7 @@
 
 ## 2. 项目结构设计
 
-本项目采用 **Feature-based** 与 **Hook-based** 相结合的架构设计，强调逻辑与视图的分离。
+本项目采用 **Feature-based** 与 **Hook-based** 相结合的架构设计，强调逻辑与视图的分离.
 
 ### 目录结构示例
 
@@ -52,16 +52,23 @@ src/
   - **树形结构与折叠**：针对 AI 生成的子任务，设计了 `parentId` 字段进行关联。UI 采用**递归式渲染逻辑**：仅在父任务卡片内部渲染其子任务，并支持折叠/展开。这样既保持了列表的整洁，又体现了任务间的层级关系。
   - **数据持久化**：利用 `useEffect` 监听 `todos` 变化，自动同步写入 `localStorage`。为了应对数据结构升级（如新增字段），采用了 **Key Versioning** 策略（`my-todo-app-data` -> `my-todo-app-data-v2`），避免旧数据导致应用崩溃。
 
-## 4. AI 使用说明
+## 4. AI 使用说明与工程化思考
 
-- **是否使用 AI 工具**：是（Google Gemini 2.5 pro model）。
-- **使用 AI 的环节**：
-  - **核心功能集成**：开发了 "Magic Wand" (魔法棒) 功能。用户点击任务旁的图标，AI 自动识别任务意图，将其拆解为 3-5 个具体的执行步骤，并自动挂载为子任务。
-  - **代码辅助**：使用 AI 生成了部分 TypeScript 接口定义和 Tailwind CSS 复杂样式类名（如毛玻璃效果、动画关键帧）。
-  - **Bug 定位**：在开发过程中遇到 TypeScript 索引签名报错 (`Element implicitly has an 'any' type`)，通过询问 AI 快速定位了 Interface 定义与 Object Key 不匹配的问题，并修正了类型断言。
-- **AI 输出如何修改**：
-  - **Prompt 约束**：AI 默认生成的 JSON 往往包含 Markdown 标记（如 ````json`）。我在 Prompt 中明确要求“只返回纯 JSON 数组”，并在前端代码中增加了正则清洗逻辑 (`replace`)，确保 JSON 解析的稳定性。
-  - **逻辑适配**：AI 生成的原始数据仅包含 `title` 和 `description`。我在前端逻辑中对其进行了二次处理，自动补充了 `id` (时间戳)、`parentId` (关联当前任务)、`dueDate` (默认为当天) 等字段，使其符合应用的数据规范，从而实现了无缝的“树形插入”。
+本项目集成了 **Google Gemini 1.5 Flash** 模型，不仅作为应用内的核心功能，也作为开发过程中的辅助工具。我将其定位为**“结对编程伙伴 (Pair Programmer)”**，而非单纯的代码生成器。
+
+* **是否使用 AI 工具**：是（Google Gemini）。
+* **使用 AI 的环节与思考**：
+    * **核心功能开发 (Agent Integration)**：
+        * **设计思路**：为了实现差异化功能，我构思了 "Magic Wand" 智能拆解功能。
+        * **Prompt Engineering**：在调试 AI 输出时，发现默认输出常包含 Markdown 标记导致解析失败。我主动优化了 System Prompt，增加了`“只返回纯 JSON 数组”`和`“不要包含 Markdown”`的强约束，大幅提升了响应的稳定性。
+    * **代码辅助与重构**：
+        * **样式生成**：利用 AI 快速生成了 Tailwind CSS 的复杂样式（如 Glassmorphism 毛玻璃效果、关键帧动画），随后我根据实际 UI 效果进行了微调（如调整透明度和阴影参数）。
+        * **类型定义**：参考 AI 生成的 TypeScript 接口初稿，但我根据业务需求增加了 `parentId` 和 `category` 字段，并将其从 `string` 收窄为联合类型以增强类型安全。
+    * **Bug 定位与修复**：
+        * **场景**：在开发 `getCategoryEmoji` 函数时遇到了 TypeScript 索引签名报错 (`Element implicitly has an 'any' type`)。
+        * **解决**：虽然 AI 提示了问题原因，但我并没有直接忽略类型检查（`any`），而是深入理解了 TS 的索引类型机制，最终通过修改函数参数类型定义（`string` -> `Todo['category']`）彻底解决了类型不匹配问题，保证了代码库的严谨性。
+* **AI 输出如何修改**：
+    * **逻辑适配**：AI 生成的原始数据仅包含 `title` 和 `description`。我在前端逻辑中编写了适配器（Adapter），自动补充了 `id` (时间戳)、`parentId` (关联当前任务)、`dueDate` (默认为当天) 等业务字段，确保 AI 生成的数据能无缝融入现有的树形结构中。
 
 ## 5. 运行与测试方式
 
