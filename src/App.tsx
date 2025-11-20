@@ -48,15 +48,15 @@ function App() {
   // 持久化 & 通知检查
   useEffect(() => {
     localStorage.setItem('my-todo-app-data-v2', JSON.stringify(todos));
-    
+
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
-    
+
     // 检查是否有今天截止的任务
     const today = new Date().toISOString().split('T')[0];
     const dueTasks = todos.filter(t => t.dueDate === today && !t.completed);
-    
+
     if (dueTasks.length > 0 && Notification.permission === "granted") {
       // 防止重复弹窗，实际项目中会有更复杂的逻辑，这里演示 API 能力
     }
@@ -75,7 +75,7 @@ function App() {
     setTodos([newTodo, ...todos]);
     // 重置
     setInputTitle(''); setInputDesc(''); setPriority('medium'); setDueDate('');
-    
+
     // 添加成功的高级反馈
     if (Notification.permission === "granted" && priority === 'high') {
       new Notification("⚡️ 高优先级任务已创建", { body: inputTitle });
@@ -88,9 +88,9 @@ function App() {
 
   const deleteTodo = (id: number) => {
     const idsToDelete = new Set([id]);
-    
-    todos.forEach(t => { 
-      if (t.parentId === id) idsToDelete.add(t.id); 
+
+    todos.forEach(t => {
+      if (t.parentId === id) idsToDelete.add(t.id);
     });
 
     setTodos(todos.filter(t => !idsToDelete.has(t.id)));
@@ -100,7 +100,7 @@ function App() {
   const toggleExpand = (id: number) => {
     const newSet = new Set(expandedTasks);
     if (newSet.has(id)) {
-      newSet.delete(id); 
+      newSet.delete(id);
     } else {
       newSet.add(id);
     }
@@ -125,7 +125,7 @@ function App() {
   const handleAISplitExecution = async (mode: 'mock' | 'real') => {
     if (!aiTargetTaskId) return;
     const subtasks = await splitTaskWithAI(aiTargetTaskTitle, apiKey, mode); // 调用我们封装好的 Hook
-    
+
     if (subtasks && subtasks.length > 0) {
       // 将生成的子任务转换成 Todo 格式
       const newTodos: Todo[] = subtasks.map((st, index) => ({
@@ -133,16 +133,16 @@ function App() {
         title: st.title,
         description: st.description,
         completed: false,
-        category: 'work',     
-        priority: 'medium',   
-        dueDate: new Date().toISOString().split('T')[0], 
+        category: 'work',
+        priority: 'medium',
+        dueDate: new Date().toISOString().split('T')[0],
         parentId: aiTargetTaskId
       }));
 
       setTodos(prev => {
         const parentIndex = prev.findIndex(t => t.id === aiTargetTaskId);
-        
-        if (parentIndex === -1) return [...newTodos, ...prev]; 
+
+        if (parentIndex === -1) return [...newTodos, ...prev];
 
         const newList = [...prev];
         newList.splice(parentIndex + 1, 0, ...newTodos);
@@ -167,7 +167,7 @@ function App() {
   // 筛选出“根任务”：用于最外层循环渲染
   const rootTodos = sortedTodos.filter(todo => {
     if (todo.parentId) return false;
-    
+
     if (filter === 'active' && todo.completed) return false;
     if (filter === 'completed' && !todo.completed) return false;
     if (searchTerm) {
@@ -211,11 +211,11 @@ function App() {
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">API Key (填入你的 Key)</label>
-                <input 
-                  type="password" 
+                <input
+                  type="password"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
-                  placeholder="AIzaSy..." 
+                  placeholder="AIzaSy..."
                   className="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
                 />
               </div>
@@ -242,11 +242,11 @@ function App() {
         {/* 输入卡片 */}
         <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4 border border-gray-100 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-          <input type="text" value={inputTitle} onChange={e => setInputTitle(e.target.value)} placeholder="准备做什么？(必填)" 
+          <input type="text" value={inputTitle} onChange={e => setInputTitle(e.target.value)} placeholder="准备做什么？(必填)"
             className="w-full text-lg font-medium placeholder:text-gray-400 border-0 border-b-2 border-gray-100 focus:border-indigo-500 focus:ring-0 px-0 py-2 transition-colors" />
-          <textarea value={inputDesc} onChange={e => setInputDesc(e.target.value)} placeholder="添加描述..." rows={2} 
+          <textarea value={inputDesc} onChange={e => setInputDesc(e.target.value)} placeholder="添加描述..." rows={2}
             className="w-full text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border-none focus:ring-2 focus:ring-indigo-100 resize-none" />
-          
+
           <div className="flex flex-wrap gap-3 items-center justify-between">
             <div className="flex gap-2 flex-wrap">
               <select value={category} onChange={e => setCategory(e.target.value as any)} className="text-sm bg-gray-50 border-none rounded-lg py-2 pl-3 pr-8 focus:ring-2 focus:ring-indigo-100 cursor-pointer hover:bg-gray-100">
@@ -265,11 +265,11 @@ function App() {
 
         {/* 过滤与工具栏 */}
         <div className="bg-white p-2 rounded-xl shadow-sm border border-gray-100 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
-          
+
           {/* 搜索 */}
           <div className="relative flex-1 max-w-xs">
             <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
-            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="搜索..." 
+            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} placeholder="搜索..."
               className="w-full pl-10 pr-4 py-2 rounded-lg bg-gray-50 border-none focus:ring-2 focus:ring-indigo-100 text-sm" />
           </div>
 
@@ -293,7 +293,7 @@ function App() {
           </div>
         </div>
 
-      {/* === 核心渲染逻辑：树形列表 === */}
+        {/* === 核心渲染逻辑：树形列表 === */}
         <div className="space-y-3">
           {rootTodos.map(parent => {
             // 获取该任务的子任务
@@ -305,33 +305,33 @@ function App() {
               <div key={parent.id} className="space-y-2">
                 {/* 1. 父任务卡片 */}
                 <div className={`group relative bg-white p-4 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all flex items-start gap-4 ${parent.completed ? 'opacity-60' : ''}`}>
-                  
+
                   {/* 折叠/展开按钮 (只有有子任务时才显示) */}
                   {hasChildren && (
-                    <button 
+                    <button
                       onClick={() => toggleExpand(parent.id)}
                       className="absolute -left-3 top-1/2 -translate-y-1/2 bg-white border border-gray-200 rounded-full p-1 shadow-sm text-gray-400 hover:text-indigo-600 transition-colors z-10"
                     >
-                       <svg className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+                      <svg className={`w-3 h-3 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
                     </button>
                   )}
 
                   <div className="pt-1">
                     <input type="checkbox" checked={parent.completed} onChange={() => toggleTodo(parent.id)} className="w-6 h-6 text-indigo-600 rounded-full border-gray-300 focus:ring-indigo-500 cursor-pointer" />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0 space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className={`font-bold text-gray-800 truncate ${parent.completed ? 'line-through decoration-2 decoration-gray-300' : ''}`}>{parent.title}</span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getPriorityColor(parent.priority)} uppercase tracking-wide`}>{parent.priority}</span>
                       <span className="text-sm">{getCategoryEmoji(parent.category)}</span>
                       {/* 子任务计数徽章 */}
-                      {hasChildren && <span className="text-xs bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full">{children.filter(c=>c.completed).length}/{children.length}</span>}
+                      {hasChildren && <span className="text-xs bg-indigo-50 text-indigo-500 px-2 py-0.5 rounded-full">{children.filter(c => c.completed).length}/{children.length}</span>}
                     </div>
                     {parent.description && <p className="text-sm text-gray-500 line-clamp-2">{parent.description}</p>}
                     {parent.dueDate && (<div className={`flex items-center gap-1 text-xs font-medium mt-1 ${parent.dueDate < new Date().toISOString().split('T')[0] && !parent.completed ? 'text-red-500' : 'text-gray-400'}`}>🗓 {parent.dueDate}</div>)}
                   </div>
-                  
+
                   {/* 魔法棒 */}
                   {!parent.completed && (
                     <button onClick={() => handleOpenAIModal(parent)} className="text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 p-2 rounded-full transition-colors opacity-0 group-hover:opacity-100" title="AI 拆解">✨</button>
@@ -351,10 +351,10 @@ function App() {
                           <input type="checkbox" checked={child.completed} onChange={() => toggleTodo(child.id)} className="w-5 h-5 text-indigo-500 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer" />
                         </div>
                         <div className="flex-1 min-w-0">
-                           <div className="flex items-center gap-2">
-                             <span className={`text-sm font-medium text-gray-700 ${child.completed ? 'line-through text-gray-400' : ''}`}>{child.title}</span>
-                           </div>
-                           {child.description && <p className="text-xs text-gray-500 mt-0.5">{child.description}</p>}
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium text-gray-700 ${child.completed ? 'line-through text-gray-400' : ''}`}>{child.title}</span>
+                          </div>
+                          {child.description && <p className="text-xs text-gray-500 mt-0.5">{child.description}</p>}
                         </div>
                         <button onClick={() => deleteTodo(child.id)} className="text-gray-300 hover:text-red-500 p-1 transition-colors opacity-0 group-hover:opacity-100">×</button>
                       </div>
@@ -364,7 +364,7 @@ function App() {
               </div>
             );
           })}
-          
+
           {rootTodos.length === 0 && (
             <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-gray-200"><p className="text-gray-400 text-sm">暂无任务</p></div>
           )}
